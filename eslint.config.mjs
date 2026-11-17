@@ -15,21 +15,21 @@ export default tseslint.config(
       },
     },
   },
-  // ADR-001: o domínio não importa nada de fora dele (aplicação, adapters, apresentação, SDKs).
+  // ADR-001: the domain imports nothing from outside it (application, adapters, presentation, SDKs).
   {
-    files: ["apps/api/src/dominio/**/*.ts"],
+    files: ["apps/api/src/domain/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
             {
-              group: ["**/aplicacao/**", "**/adapters/**", "**/apresentacao/**"],
-              message: "O domínio não pode depender de camadas externas (ADR-001).",
+              group: ["**/application/**", "**/adapters/**", "**/presentation/**"],
+              message: "The domain cannot depend on outer layers (ADR-001).",
             },
             {
               group: ["@aws-sdk/*", "fastify", "zod"],
-              message: "O domínio não conhece infraestrutura nem bibliotecas de borda (ADR-001).",
+              message: "The domain knows nothing about infrastructure or edge libraries (ADR-001).",
             },
           ],
         },

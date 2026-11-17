@@ -10,13 +10,13 @@ Ports and adapters (hexagonal). The domain defines the interfaces it needs, and 
 
 ```
 apps/api/src/
-├── dominio/       # entities, rules and ports (no I/O, no SDKs)
-├── aplicacao/     # use cases that orchestrate the domain
+├── domain/        # entities, rules and ports (no I/O, no SDKs)
+├── application/   # use cases that orchestrate the domain
 ├── adapters/      # implementations of the ports (DynamoDB, SQS, Bedrock)
-└── apresentacao/  # HTTP handlers; translates domain error codes into status codes
+└── presentation/  # HTTP handlers; translates domain error codes into status codes
 ```
 
-Domain names are in Portuguese (`Vaga` = job post, `Etapa` = funnel stage). Architecture decisions are recorded in [docs/decisoes.md](docs/decisoes.md).
+Architecture decisions are recorded in [docs/decisions.md](docs/decisions.md).
 
 ## Development
 
