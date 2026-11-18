@@ -87,7 +87,7 @@ describe("recordStage", () => {
     expect(job.events[0]?.note).toBe("Coffee with the CTO");
   });
 
-  it.each(["HIRED", "REJECTED", "WITHDRAWN"] as const)("refuses new stages after %s", (closing) => {
+  it.each(["HIRED", "REJECTED", "WITHDRAWN", "NO_RESPONSE"] as const)("refuses new stages after %s", (closing) => {
     const closed = record(record(newJob(), "APPLIED", 2), closing, 3);
 
     expect(isClosed(closed)).toBe(true);
@@ -111,6 +111,19 @@ describe("reopen", () => {
     expect(reopened.events.at(-1)).toEqual({ id: "event-2", type: "REOPENED", occurredAt: NOW, recordedAt: NOW });
     expect(isClosed(reopened)).toBe(false);
     expect(record(reopened, "HR_INTERVIEW", 18).events).toHaveLength(3);
+  });
+
+  it("reopens a job closed by NO_RESPONSE when the company finally answers", () => {
+    const silent = record(record(newJob(), "ONLINE_ASSESSMENT", 3), "NO_RESPONSE", 10);
+    const answered = record(reopen(silent, "event-3", NOW), "HR_INTERVIEW", 18);
+
+    expect(isClosed(answered)).toBe(false);
+    expect(answered.events.map((event) => event.type)).toEqual([
+      "ONLINE_ASSESSMENT",
+      "NO_RESPONSE",
+      "REOPENED",
+      "HR_INTERVIEW",
+    ]);
   });
 
   it("refuses to reopen a job that is not closed", () => {

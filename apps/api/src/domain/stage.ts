@@ -2,6 +2,7 @@
 // OTHER covers what the catalog does not, and always comes with a note.
 export const STAGE_TYPES = [
   "APPLIED",
+  "ONLINE_ASSESSMENT",
   "HR_INTERVIEW",
   "TECHNICAL_INTERVIEW",
   "TAKE_HOME",
@@ -13,11 +14,17 @@ export const STAGE_TYPES = [
   "HIRED",
   "REJECTED",
   "WITHDRAWN",
+  "NO_RESPONSE",
 ] as const;
 
 export type StageType = (typeof STAGE_TYPES)[number];
 
-export const CLOSING_STAGES: ReadonlySet<StageType> = new Set(["HIRED", "REJECTED", "WITHDRAWN"]);
+export const CLOSING_STAGES: ReadonlySet<StageType> = new Set([
+  "HIRED",
+  "REJECTED",
+  "WITHDRAWN",
+  "NO_RESPONSE",
+]);
 
 // Not a stage the user picks: it is recorded by reopen().
 export type EventType = StageType | "REOPENED";
