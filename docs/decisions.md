@@ -81,3 +81,29 @@ ADR-002 forced a linear funnel. Looking at real hiring processes, that is too ri
 - The domain still enforces invariants (closed jobs, notes on `OTHER`, no future dates), so it is not a plain CRUD.
 - **Accepted risk:** the "closed jobs must be reopened" rule spans several records. Two concurrent writes (recording `REJECTED` in one tab and another stage in a second tab) can both pass the check and leave a stage after the closing one. For a single-user app this race is rare and harmless. With many users, the fix is a conditional write on a job version (a DynamoDB condition expression).
 - The catalog will need new types over time; `OTHER` with a note shows which ones.
+
+---
+
+## ADR-004: Job analysis with an LLM: structured output, boundary validation and a derived fit
+
+**Status:** accepted (2026-11-18)
+
+### Context
+
+The copilot analyzes a job post against the resume with a model on Amazon Bedrock. LLM output is not deterministic, calls cost money per token, and the provider may change (another Bedrock model, or another vendor).
+
+### Decision
+
+1. **The application owns the prompt and the output schema.** What to ask and what a valid answer looks like are product knowledge, not infrastructure. The `LanguageModel` port is generic (`generateStructured`), and the Bedrock adapter only translates it to the Converse API.
+2. **Structured output through tool use.** The model is forced (`toolChoice`) to fill in a tool whose input is the JSON Schema of the analysis, generated from the same Zod schema used for validation.
+3. **Validate at the boundary anyway.** Tool use shapes the answer but does not guarantee it: the model can return an empty list, two bullets instead of three, or skip the tool. The response is parsed with Zod before anything else uses it.
+4. **Retry by failure type.** Throttling is transient and is retried by the SDK with exponential backoff (`maxAttempts: 3`); no second retry layer on top. An invalid output is retried **once** in the use case, because a new sample may succeed, but each attempt is paid. A malformed request or missing permission is never retried: it would fail the same way. After two invalid outputs the analysis ends as `ERROR` with the validation message.
+5. **The model judges requirements; code derives the fit.** Instead of a 0–100 score (LLMs are inconsistent with numbers), the model lists each requirement, whether the resume meets it and the evidence. The fit (`LOW`, `MEDIUM`, `HIGH`) comes from the share of required items met (≥ 80% high, ≥ 50% medium), so the same judgments always give the same fit, and evals can check each requirement.
+6. **Start with the cheapest model; let evals decide.** The model id is configuration (`BEDROCK_MODEL_ID`), not code. A set of real job posts with expected results (P3) compares candidates on accuracy, cost and latency; a more expensive model is adopted only if the cheap one fails the evals.
+
+### Consequences
+
+- Swapping providers or models touches only the adapter or one environment variable.
+- Analyses are explainable: every fit comes with the requirements behind it.
+- An invalid answer can cost up to two calls. The tokens of both are reported.
+- The fit thresholds are a product choice and may change after real use.
