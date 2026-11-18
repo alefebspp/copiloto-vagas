@@ -3,10 +3,10 @@ import { DomainError } from "./domain-error.js";
 
 describe("DomainError", () => {
   it("carries a semantic code and no HTTP status", () => {
-    const error = new DomainError("INVALID_TRANSITION", "SAVED cannot move straight to TECHNICAL");
+    const error = new DomainError("JOB_CLOSED", "job 01J... is closed");
 
-    expect(error.code).toBe("INVALID_TRANSITION");
-    expect(error.message).toBe("SAVED cannot move straight to TECHNICAL");
+    expect(error.code).toBe("JOB_CLOSED");
+    expect(error.message).toBe("job 01J... is closed");
     expect(Object.keys(error)).not.toContain("status");
   });
 
