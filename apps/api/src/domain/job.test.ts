@@ -126,6 +126,15 @@ describe("reopen", () => {
     ]);
   });
 
+  it("can close and reopen the same job more than once", () => {
+    let job = record(newJob(), "REJECTED", 3);
+    job = reopen(job, "event-2", NOW);
+    job = record(job, "WITHDRAWN", 18);
+
+    expect(isClosed(job)).toBe(true);
+    expect(isClosed(reopen(job, "event-4", NOW))).toBe(false);
+  });
+
   it("refuses to reopen a job that is not closed", () => {
     expectDomainError(() => reopen(newJob(), "event-1", NOW), "JOB_NOT_CLOSED");
   });
