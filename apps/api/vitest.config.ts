@@ -6,7 +6,8 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts"],
+      // The entry points only wire adapters to ports; they are exercised by running them.
+      exclude: ["src/**/*.test.ts", "src/entry/**"],
     },
   },
 });

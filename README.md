@@ -29,6 +29,16 @@ pnpm typecheck   # tsc --noEmit
 pnpm lint        # ESLint with type-aware rules
 ```
 
+### Analyze a job post (local, calls Amazon Bedrock)
+
+Put the job post and your resume as text files in `local/` (ignored by Git), sign in with `aws login`, then:
+
+```bash
+BEDROCK_MODEL_ID=<model or inference profile id> pnpm analyze local/job.txt local/resume.txt
+```
+
+It prints the validated analysis and the tokens used. No keys in code: the AWS SDK finds credentials through its default provider chain.
+
 ## License
 
 MIT
