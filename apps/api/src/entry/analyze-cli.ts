@@ -22,7 +22,12 @@ const [jobText, resumeText] = await Promise.all([
 
 // No keys in code: the SDK finds credentials through its default chain (AWS_PROFILE, aws login session).
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION ?? "us-east-2", maxAttempts: 3 });
-const result = await analyzeJob(new BedrockLanguageModel(client, modelId), { jobText, resumeText });
-
-console.log(JSON.stringify(result, null, 2));
-if (result.status === "ERROR") process.exit(2);
+try {
+  const result = await analyzeJob(new BedrockLanguageModel(client, modelId), { jobText, resumeText });
+  console.log(JSON.stringify(result, null, 2));
+  if (result.status === "ERROR") process.exit(2);
+} catch (error) {
+  // Infrastructure errors (permissions, throttling after the SDK retries) end here.
+  console.error(error instanceof Error ? `${error.name}: ${error.message}` : error);
+  process.exit(3);
+}
