@@ -107,3 +107,29 @@ The copilot analyzes a job post against the resume with a model on Amazon Bedroc
 - Analyses are explainable: every fit comes with the requirements behind it.
 - An invalid answer can cost up to two calls. The tokens of both are reported.
 - The fit thresholds are a product choice and may change after real use.
+
+## ADR-005: Infrastructure as code with Terraform, keyless deploys through GitHub OIDC, API on Lambda
+
+**Status:** accepted (2026-11-19)
+
+### Context
+
+The API has to run on AWS and be deployed from GitHub on every merge. The repository is public, so anyone can open a pull request. The account is personal and cost-sensitive, and traffic is low and bursty: idle most of the day.
+
+### Decision
+
+1. **All infrastructure is code; the console is read-only.** Every resource is reviewed in a pull request, versioned in git and reproducible in a new environment (staging, production) without repeating manual steps.
+2. **Terraform, not CDK.** CDK would keep everything in TypeScript, but Terraform's explicit `plan` shows exactly what will be created, changed or destroyed before anything happens, the state is a visible part of the design, and it is what most job posts ask for. The HCL itself is AWS-specific; what carries to another cloud is the tool and the workflow, not the code.
+3. **Two stacks.** `infra/bootstrap` creates what deploys depend on: the state bucket, the GitHub OIDC provider and the `github-deploy` role. It keeps its state locally and is applied once, by hand, by the account owner, because nothing can create the bucket its own state lives in, and a role cannot grant itself permission to exist. `infra/main` holds the application and stores its state in that bucket.
+4. **Remote state with a lock, and serialized deploys.** The `main` state lives in S3 with native state locking, so two runs cannot write it at the same time. The deploy job also uses a GitHub Actions concurrency group, so merges queue their deploys instead of racing.
+5. **GitHub authenticates through OIDC; no long-lived keys.** Each run exchanges a GitHub-signed token for temporary credentials of `github-deploy`. The role's trust policy requires `aud = sts.amazonaws.com` and `sub = repo:alefebspp/copiloto-vagas:ref:refs/heads/main`: only a run from this repository, on `main`, can assume it. A pull request, including one from a fork, carries a different `sub` and is refused. Without the `sub` condition, any GitHub repository could assume the role.
+6. **`plan` on pull requests, `apply` on merge to `main`.** Reviewers see the infrastructure diff before merging; only `main` changes the account.
+7. **The API runs on Lambda behind an API Gateway HTTP API.** Lambda scales to zero and is billed per request and duration, which fits idle-most-of-the-day traffic and the free plan. An always-on container would cost money 24 hours a day for nobody.
+
+### Consequences
+
+- Nobody, including CI, holds a credential that does not expire.
+- The bootstrap stack is the one manual step, and its local state must not be lost (it can be imported again if it is).
+- Cold starts add latency to the first request after idle time; accepted for this traffic.
+- HTTP API integrations time out after 30 seconds, and Lambda bills while it waits for Bedrock. Synchronous analysis is fine while it finishes within seconds; long work moves to asynchronous processing (M6).
+- Revisit the compute choice if traffic becomes constant (always-on becomes cheaper than per-request), latency must be predictable, or connections must stay open (streaming, websockets).
